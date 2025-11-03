@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Teacher Bot</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome for Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts for Premium Look -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #90C67C; /* Green for light mode */
+            --secondary-color: #90C67C; /* Light gray */
+            --bg-color: #328E6E; /* White */
+            --text-color: #000000; /* Black */
+            --icon-color: #333333;
+            --accent-color: #67AE6E;
+            --shadow: 0 10px 6px rgba(0, 0, 0, 0.1);
+            --sidebaroptionscolor: #E1EEBC;
+            --sidebaroptionshovercolor: #e1eebccc;
+            --inputboxcolor: #E1EEBC;
+        }
+
+        body.dark-mode {
+            --primary-color: #1A2A80; /* Dark gray */
+            --secondary-color: #1A2A80; /* Blackish */
+            --bg-color: #3B38A0;
+            --text-color: #ffffff; /* White */
+            --icon-color: #ECDFCC;
+            --accent-color: #3d57e9;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            --sidebaroptionscolor: rgba(173, 216, 230, 0.548);
+            --sidebaroptionshovercolor: rgb(58, 58, 214);
+            --inputboxcolor: #ffffff;
+        }
+
+        body {
+            font-family: 'Roboto', 'Noto Sans Bengali', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s ease;
+        }
+
+        .navbar {
+            background-color: var(--secondary-color);
+            box-shadow: var(--shadow);
+        }
+
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.5rem;
+            color: var(--text-color);
+        }
+
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .chat-message {
+            margin-bottom: 0;
+            padding: 12px 18px;
+            border-radius: 12px;
+            max-width: 80%;
+            display: inline-block;
+            box-shadow: var(--shadow);
+        }
+
+        .user-message {
+            background-color: #ffffff;
+            color: var(--text-color);
+            align-self: flex-end;
+        }
+
+        .bot-message {
+            background-color: var(--secondary-color);
+            border: 1px solid var(--primary-color);
+            align-self: flex-start;
+        }
+
+        .input-group {
+            padding: 10px;
+            background-color: var(--bg-color);
+            border-top: 1px solid var(--primary-color);
+            box-shadow: var(--shadow);
+            background-color: var(--secondary-color);
+        }
+
+        .btn {
+            transition: all 0.2s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        .speed-control label {
+            color: var(--text-color);
+        }
+
+        .error-message {
+            color: red;
+            text-align: center;
+        }
+
+        footer {
+            background-color: var(--secondary-color);
+            padding: 10px 0;
+            text-align: center;
+            font-size: 0.8rem;
+            color: var(--text-color);
+            box-shadow: var(--shadow);
+        }
+
+        /* Sidebar */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: -250px;
+            width: 250px;
+            height: 100%;
+            background-color: var(--secondary-color);
+            transition: left 0.3s ease;
+            box-shadow: var(--shadow);
+            z-index: 1050;
+            
+        }
+
+
+        .sidebar.active {
+            left: 0;
+        }
+
+        .sidebar ul {
+            list-style: none;
+            padding: 20px;
+        }
+
+        .sidebar li {
+            margin-bottom: 10px;
+        }
+
+        .sidebar a {
+            color: var(--text-color);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+
+        /* Settings Dropdown */
+        .settings-dropdown {
+            position: absolute;
+            top: 60px;
+            right: 10px;
+            background-color: var(--secondary-color);
+            border: 1px solid var(--primary-color);
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: var(--shadow);
+            display: none;
+            z-index: 1000;
+        }
+
+        .settings-dropdown.active {
+            display: block;
+        }
+
+        .settings-dropdown .form-check-label,
+        .settings-dropdown label {
+            color: var(--text-color);
+        }
+
+        /* Mic listening animation */
+        .mic-btn.listening {
+            animation: pulse 1s infinite;
+            box-shadow: 0 0 10px rgba(0,123,255,0.4);
+            border-radius: 20px;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.06); }
+            100% { transform: scale(1); }
+        }
+
+        /* Listening Box */
+        #listening-box {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: var(--secondary-color);
+            border: 1px solid var(--primary-color);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: var(--shadow);
+            display: none;
+            z-index: 1050;
+            text-align: center;
+        }
+
+        #listening-box.active {
+            display: block;
+        }
+
+        .waveform {
+            display: flex;
+            justify-content: center;
+            gap: 4px;
+            margin-top: 10px;
+        }
+
+        .wave-bar {
+            width: 4px;
+            height: 20px;
+            background-color: var(--accent-color);
+            animation: waveform 1.2s infinite ease-in-out;
+        }
+
+        .wave-bar:nth-child(2) { animation-delay: 0.2s; height: 25px; }
+        .wave-bar:nth-child(3) { animation-delay: 0.4s; height: 30px; }
+        .wave-bar:nth-child(4) { animation-delay: 0.6s; height: 25px; }
+        .wave-bar:nth-child(5) { animation-delay: 0.8s; height: 20px; }
+
+        @keyframes waveform {
+            0%, 100% { transform: scaleY(0.4); }
+            50% { transform: scaleY(1); }
+        }
+
+        /* Playing indicator */
+        .playing-indicator {
+            display: inline-flex;
+            gap: 3px;
+            align-items: center;
+            margin-left: 8px;
+        }
+
+        .bar {
+            width: 3px;
+            height: 12px;
+            background: var(--accent-color);
+            animation: bar 0.8s infinite ease-in-out;
+            opacity: 0.9;
+        }
+
+        .bar:nth-child(2) { animation-delay: 0.1s; height: 8px; }
+        .bar:nth-child(3) { animation-delay: 0.2s; height: 14px; }
+
+        @keyframes bar {
+            0% { transform: scaleY(0.4); }
+            50% { transform: scaleY(1); }
+            100% { transform: scaleY(0.4); }
+        }
+
+        .speaker-icon {
+            margin-left: 8px;
+            color: var(--accent-color);
+        }
+
+        audio { display: none !important; }
+
+        /* Premium touches */
+        .form-control {
+            border-radius: 8px;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .form-control:focus {
+            box-shadow: 0 0 0 0.25rem rgba(40,167,69,0.25);
+        }
+        #settings-btn{
+          border: None;
+          position: fixed;  right: 10px;
+          color: var(--icon-color);
+        }
+        #sidebar-toggle{
+          border: None;
+          position: fixed;  left: 10px;
+          color: var(--icon-color);
+        }
+        #voice-btn{
+          border: None;
+          background-color:var(--accent-color);
+          
+        }
+        #send-btn{
+          margin: 0;
+          padding-top: 5px;
+          padding-bottom: 5px;
+          padding-left: 10px;
+          padding-right:10px;
+          background-color:var(--accent-color);
+          border: none;
+        }
+        #question-input{
+          background-color: var(--inputboxcolor);
+        }
+        #lang-select{
+          background-color: var(--inputboxcolor);
+        }
+        .user-message{
+            background-color: var(--secondary-color);
+        }
+        .sidebaroptions{
+            background-color: var(--sidebaroptionscolor);
+            padding: 10px;
+            border-radius: 10px;
+        }
+        .sidebaroptions:hover{
+            background-color: var(--sidebaroptionshovercolor);
+        }
+      
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg">
+        <div class="container d-flex justify-content-between align-items-center">
+            <!-- Sidebar Toggle Button -->
+            <button id="sidebar-toggle" class="btn btn-outline-secondary" aria-label="Toggle sidebar">
+                <i class="fas fa-bars"></i>
+            </button>
+            <!-- Centered Header -->
+            <a class="navbar-brand mx-auto" id="headertextmain" href="/">Teacher Bot</a>
+            <!-- Settings Button -->
+            <button id="settings-btn" class="btn btn-outline-secondary" aria-label="Settings">
+                <i class="fas fa-cog"></i>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <ul>
+            <li class="sidebaroptions"><a href="/">Home</a></li>
+            <li class="sidebaroptions"><a href="/chat">Chat</a></li>
+        </ul>
+    </div>
+
+    <!-- Settings Dropdown -->
+    <div class="settings-dropdown" id="settings-dropdown">
+        <h6>Settings</h6>
+        <hr>
+        <!-- Language Option -->
+        <div class="mb-3">
+            <label>Language</label>
+            <select id="lang-select" class="form-select">
+                <option value="en">English</option>
+                <option value="bn">বাংলা</option>
+            </select>
+        </div>
+        <!-- Theme Options -->
+        <div class="mb-3">
+            <label>Theme</label>
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="theme" id="light-mode" checked>
+                <label class="form-check-label" for="light-mode">Light Mode</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="theme" id="dark-mode">
+                <label class="form-check-label" for="dark-mode">Dark Mode</label>
+            </div>
+        </div>
+        <!-- Voice Speed -->
+        <div class="mb-3 speed-control">
+            <label for="speed-range">Voice Speed: <span id="speed-label">1.25x</span></label>
+            <input id="speed-range" type="range" min="0.6" max="2.0" step="0.05" value="1.25" class="form-range" />
+        </div>
+    </div>
+
+    <!-- Chat Container -->
+    <div class="chat-container d-flex" id="chat-history">
+        <div class="chat-message bot-message">
+            <i class="fas fa-robot me-2" style="color: var(--icon-color);"></i>
+            <span data-en="Hey there? What are we gonna play today?" data-bn="কি অবস্থা? আজ আমরা কী খেলব?">Hey there? What are we gonna play today?</span>
+        </div>
+    </div>
+
+    <!-- Input Group -->
+    <div class="input-group" >
+        <div class="container">
+            <div class="row">
+                <div class="col-12 d-flex gap-2 align-items-start" >
+                    <input type="text" id="question-input" class="form-control" placeholder="Type your question..." aria-label="Question input">
+                    <button id="voice-btn" class="btn btn-outline-secondary mic-btn" aria-label="Toggle voice input"><i class="fas fa-microphone" style="color: var(--icon-color);"></i></button>
+                    <button id="send-btn" class="btn btn-primary"><i class="fas fa-paper-plane" style="color: var(--icon-color);"></i></button>
+                </div>
+                <div class="col-12 mt-2">
+                    <div id="loading-spinner" class="spinner-border text-primary mt-2 spinner" role="status" style="display:none;">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p id="error-message" class="error-message mt-2"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Listening Box -->
+    <div id="listening-box">
+        <h5 data-en="Listening..." data-bn="শোনা হচ্ছে...">Listening...</h5>
+        <div class="waveform">
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <p data-en="© 2025 The Agri Servitor — Empowering farmers through AI and automation" data-bn="© ২০২৫ কৃষি সহকারী — কৃষকদের ক্ষমতায়ন এআই ও অটোমেশনের মাধ্যমে">© 2025 The Agri Servitor — Empowering farmers through AI and automation</p>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+    // UI elements & state
+    const elements = document.querySelectorAll('[data-en], [data-bn]');
+    const questionInput = document.getElementById('question-input');
+    const sendBtn = document.getElementById('send-btn');
+    const voiceBtn = document.getElementById('voice-btn');
+    const chatHistory = document.getElementById('chat-history');
+    const loadingSpinner = document.getElementById('loading-spinner');
+    const errorMessage = document.getElementById('error-message');
+    const speedRange = document.getElementById('speed-range');
+    const speedLabel = document.getElementById('speed-label');
+    const sidebarToggle = document.getElementById('sidebar-toggle');
+    const sidebar = document.getElementById('sidebar');
+    const settingsBtn = document.getElementById('settings-btn');
+    const settingsDropdown = document.getElementById('settings-dropdown');
+    const langSelect = document.getElementById('lang-select');
+    const lightModeRadio = document.getElementById('light-mode');
+    const darkModeRadio = document.getElementById('dark-mode');
+    const listeningBox = document.getElementById('listening-box');
+
+    let currentLang = localStorage.getItem('lang') || 'en';
+    let currentTheme = localStorage.getItem('theme') || 'light';
+    let recognition = null;
+    const DEFAULT_SPEED = 1.25;
+    let isPlayingAudio = false;
+
+    // Initialize
+    const savedSpeed = parseFloat(localStorage.getItem('playback_rate') || DEFAULT_SPEED);
+    speedRange.value = savedSpeed;
+    speedLabel.textContent = `${savedSpeed.toFixed(2)}x`;
+
+    langSelect.value = currentLang;
+    if (currentTheme === 'dark') {
+        document.body.classList.add('dark-mode');
+        darkModeRadio.checked = true;
+    }
+
+    // Update language
+    function updateLanguage() {
+        elements.forEach(el => {
+            const text = el.getAttribute(`data-${currentLang}`) || el.textContent;
+            el.textContent = text;
+        });
+        questionInput.placeholder = currentLang === 'en' ? 'Type your question...' : 'আপনার প্রশ্ন লিখুন...';
+        document.documentElement.lang = currentLang;
+        if (recognition) recognition.lang = currentLang === 'en' ? 'en-US' : 'bn-BD';
+    }
+    updateLanguage();
+
+    // Event listeners
+    langSelect.addEventListener('change', () => {
+        currentLang = langSelect.value;
+        localStorage.setItem('lang', currentLang);
+        updateLanguage();
+    });
+
+    lightModeRadio.addEventListener('change', () => {
+        document.body.classList.remove('dark-mode');
+        localStorage.setItem('theme', 'light');
+    });
+
+    darkModeRadio.addEventListener('change', () => {
+        document.body.classList.add('dark-mode');
+        localStorage.setItem('theme', 'dark');
+    });
+
+    speedRange.addEventListener('input', () => {
+        const v = parseFloat(speedRange.value);
+        speedLabel.textContent = `${v.toFixed(2)}x`;
+        localStorage.setItem('playback_rate', v.toFixed(2));
+    });
+
+    function getPlaybackRate() {
+        return parseFloat(localStorage.getItem('playback_rate') || speedRange.value || DEFAULT_SPEED);
+    }
+
+    // Toggle sidebar
+    sidebarToggle.addEventListener('click', () => {
+        sidebar.classList.toggle('active');
+    });
+
+    // Toggle settings
+    settingsBtn.addEventListener('click', () => {
+        settingsDropdown.classList.toggle('active');
+    });
+
+    // Close dropdowns on outside click
+    document.addEventListener('click', (e) => {
+        if (!settingsBtn.contains(e.target) && !settingsDropdown.contains(e.target)) {
+            settingsDropdown.classList.remove('active');
+        }
+        if (!sidebarToggle.contains(e.target) && !sidebar.contains(e.target)) {
+            sidebar.classList.remove('active');
+        }
+    });
+
+    // Append message
+    function appendMessage(type, text, audioUrls = []) {
+        const messageDiv = document.createElement('div');
+        messageDiv.classList.add('chat-message', type === 'user' ? 'user-message' : 'bot-message');
+        const icon = type === 'bot' ? '<i class="fas fa-robot me-2" style="color: var(--icon-color);"></i>' : '<i class="fas fa-user me-2" style="color: var(--icon-color);"></i>';
+        const textNode = document.createElement('span');
+        textNode.textContent = text;
+        messageDiv.innerHTML = icon;
+        messageDiv.appendChild(textNode);
+
+        if (type === 'bot' && Array.isArray(audioUrls) && audioUrls.length > 0) {
+            const controlsWrap = document.createElement('div');
+            controlsWrap.className = 'd-flex align-items-center mt-2';
+            const speaker = document.createElement('i');
+            speaker.className = 'fas fa-volume-up speaker-icon';
+            controlsWrap.appendChild(speaker);
+
+            const playingIndicator = document.createElement('span');
+            playingIndicator.className = 'playing-indicator';
+            playingIndicator.style.display = 'none';
+            playingIndicator.innerHTML = '<span class="bar"></span><span class="bar"></span><span class="bar"></span>';
+            controlsWrap.appendChild(playingIndicator);
+
+            messageDiv.appendChild(controlsWrap);
+
+            if (!isPlayingAudio) {
+                isPlayingAudio = true;
+                (async () => {
+                    try {
+                        playingIndicator.style.display = 'inline-flex';
+                        const rate = getPlaybackRate();
+                        await playAudioUrlsSequentially(audioUrls, rate);
+                    } catch (e) {
+                        console.warn('Audio play error', e);
+                    } finally {
+                        playingIndicator.style.display = 'none';
+                        isPlayingAudio = false;
+                    }
+                })();
+            }
+        }
+
+        chatHistory.appendChild(messageDiv);
+        chatHistory.scrollTop = chatHistory.scrollHeight;
+    }
+
+    // Play single audio
+    function playSingleAudio(url, rate = 1.25) {
+        return new Promise((resolve) => {
+            if (!url || typeof url !== 'string') return resolve();
+
+            const audio = new Audio(url);
+            audio.crossOrigin = 'anonymous';
+            audio.preload = 'auto';
+            audio.playbackRate = rate;
+
+            const cleanup = () => {
+                audio.pause();
+                audio.src = '';
+                audio.remove();
+            };
+
+            audio.addEventListener('ended', () => { cleanup(); resolve(); }, { once: true });
+            audio.addEventListener('error', () => { cleanup(); resolve(); }, { once: true });
+            audio.addEventListener('canplaythrough', () => {
+                audio.play().catch(() => resolve());
+            }, { once: true });
+
+            setTimeout(() => audio.play().catch(resolve), 300);
+        });
+    }
+
+    async function playAudioUrlsSequentially(audioUrls, rate) {
+        for (const url of audioUrls) {
+            await playSingleAudio(url, rate);
+        }
+    }
+
+    // Send question
+    async function sendQuestion() {
+        const question = questionInput.value.trim();
+        if (!question) return;
+        appendMessage('user', question);
+        questionInput.value = '';
+        loadingSpinner.style.display = 'inline-block';
+        errorMessage.textContent = '';
+
+        try {
+            const res = await fetch(`/ask?q=${encodeURIComponent(question)}&lang=${currentLang}`);
+            if (!res.ok) throw new Error('Network error');
+            const data = await res.json();
+            const answerKey = currentLang === 'en' ? 'answer_en' : 'answer_bn';
+            const audioUrlsKey = currentLang === 'en' ? 'audio_urls_en' : 'audio_urls_bn';
+            appendMessage('bot', data[answerKey] || 'No response', data[audioUrlsKey] || []);
+        } catch (err) {
+            errorMessage.textContent = currentLang === 'en' ? 'Something went wrong. Please try again.' : 'কিছু ভুল হয়েছে। আবার চেষ্টা করুন।';
+        } finally {
+            loadingSpinner.style.display = 'none';
+        }
+    }
+
+    sendBtn.addEventListener('click', sendQuestion);
+    questionInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendQuestion(); });
+
+    // Voice input
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+        recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+
+        recognition.onstart = () => {
+            voiceBtn.classList.add('listening');
+            voiceBtn.innerHTML = '<i class="fas fa-circle" style="color:#dc3545;"></i>';
+            listeningBox.classList.add('active');
+            listeningBox.querySelector('h5').textContent = currentLang === 'en' ? 'Listening...' : 'শোনা হচ্ছে...';
+            errorMessage.textContent = '';
+            setTimeout(() => {
+                if (voiceBtn.classList.contains('listening')) recognition.stop();
+            }, 10000);
+        };
+
+        recognition.onend = () => {
+            voiceBtn.classList.remove('listening');
+            voiceBtn.innerHTML = '<i class="fas fa-microphone" style="color: var(--icon-color);"></i>';
+            listeningBox.classList.remove('active');
+        };
+
+        recognition.onresult = (event) => {
+            questionInput.value = event.results[0][0].transcript || '';
+            sendQuestion();
+        };
+
+        recognition.onerror = (ev) => {
+            errorMessage.textContent = currentLang === 'en' ? 'Voice input error.' : 'ভয়েস ইনপুটে সমস্যা হয়েছে।';
+            recognition.stop();
+        };
+
+        voiceBtn.addEventListener('click', () => {
+            if (voiceBtn.classList.contains('listening')) {
+                recognition.stop();
+            } else {
+                recognition.lang = currentLang === 'en' ? 'en-US' : 'bn-BD';
+                recognition.start();
+            }
+        });
+    } else {
+        voiceBtn.style.display = 'none';
+    }
+
+    // Accessibility shortcuts
+    document.addEventListener('keydown', (e) => {
+        if (e.ctrlKey && e.shiftKey) {
+            if (e.key === ',' || e.key === '<') {
+                speedRange.stepDown();
+                speedRange.dispatchEvent(new Event('input'));
+            } else if (e.key === '.' || e.key === '>') {
+                speedRange.stepUp();
+                speedRange.dispatchEvent(new Event('input'));
+            }
+        }
+        if (e.ctrlKey && e.key === 'v') {
+            voiceBtn.click();
+        }
+    });
+    </script>
+</body>
+</html>

@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Teacher Bot provides AI-driven solutions for users in Bangladesh.">
+    <meta name="keywords" content="chatbot, AI, Bangladesh, assistance">
+    <title data-bn="Teacher Bot" data-en="Teacher Bot">Teacher Bot</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome for Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+    <!-- Custom CSS -->
+    <style>
+        :root {
+            --primary-color: #28a745; /* Green for light mode */
+            --secondary-color: #e9ecef; /* Light gray */
+            --bg-color: #ffffff; /* White */
+            --text-color: #000000; /* Black */
+            --icon-color: #333333;
+            --accent-color: #218838;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --navitemhover: #218838;
+            --navitemhovertext: black;
+        }
+
+        body.dark-mode {
+            --primary-color: #1a2a80; /* Dark blue */
+            --secondary-color: #343a40; /* Dark gray */
+            --bg-color: #212529; /* Darker gray */
+            --text-color: #ffffff; /* White */
+            --icon-color: #ecdfcc;
+            --accent-color: #7a85c1;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            --navitemhover: #1f329c;
+            --navitemhovertext: #ffffff;
+        }
+
+        body {
+            font-family: 'Roboto', 'Noto Sans Bengali', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .hero {
+            background-color: var(--primary-color);
+            color: var(--text-color);
+            padding: 60px 0;
+            text-align: center;
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .hero-content {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--accent-color);
+            border-color: var(--accent-color);
+        }
+
+        .navbar {
+            background-color: var(--secondary-color);
+            box-shadow: var(--shadow);
+        }
+
+        .navbar-brand, .nav-link {
+            color: var(--text-color) !important;
+        }
+
+        .dropdown-menu {
+            background-color: var(--secondary-color);
+            color: var(--text-color);
+            box-shadow: var(--shadow);
+        }
+
+        .dropdown-item {
+            color: var(--text-color);
+        }
+
+        .dropdown-item:hover {
+            background-color: var(--accent-color);
+            color: var(--text-color);
+        }
+
+        .settings-icon {
+            color: var(--icon-color);
+        }
+
+        footer {
+            background-color: var(--secondary-color);
+            padding: 20px 0;
+            text-align: center;
+            margin-top: auto;
+        }
+
+        .btn:focus, .dropdown-toggle:focus {
+            outline: 2px solid var(--accent-color);
+            outline-offset: 2px;
+        }
+
+        .nav-item {
+            background-color: var(--primary-color);
+            color: var(--text-color);
+            padding: 5px;
+            margin: 10px;
+            border-radius: 10px;
+            width: 200px;
+        }
+
+        .nav-item:hover {
+            background-color: var(--navitemhover);
+            color: var(--navitemhovertext);
+        }
+
+        #navbarsettings {
+            color: var(--text-color);
+            border: none;
+        }
+    </style>
+</head>
+<body>
+    <noscript>
+        <div class="container text-center">
+            <p data-bn="জাভাস্ক্রিপ্ট সক্ষম করুন সেটিংস বৈশিষ্ট্য ব্যবহার করতে।" data-en="Please enable JavaScript to use the settings features.">জাভাস্ক্রিপ্ট সক্ষম করুন সেটিংস বৈশিষ্ট্য ব্যবহার করতে।</p>
+        </div>
+    </noscript>
+
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg">
+        <div class="container">
+            <a class="navbar-brand fas" href="/" data-bn="Teacher Bot" data-en="Teacher Bot">Teacher Bot</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation menu">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link active bi bi-house-fill fas" href="/"> Home</a></li>
+                    <li class="nav-item"><a class="nav-link bi bi-chat-fill fas" href="/chat"> Chat</a></li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="settingsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-cog settings-icon" id="navbarsettings"> Settings</i>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="settingsDropdown">
+                            <li>
+                                <button class="dropdown-item" id="lang-toggle" data-bn="ইংরেজি" data-en="Bengali">English</button>
+                            </li>
+                            <li>
+                                <button class="dropdown-item" id="theme-toggle">
+                                    <i class="fas fa-moon"></i> <span data-bn="Dark Mode" data-en="Dark Mode">Dark Mode</span>
+                                </button>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <h1 data-bn="Teacher Bot" data-en="Teacher Bot">Teacher Bot</h1>
+            <p data-bn="আপনার প্রশ্নের তাৎক্ষণিক উত্তর, যেকোনো সময়, যেকোনো বিষয়ে। এআই-চালিত সহায়তার মাধ্যমে আপনার জীবনকে সহজ করুন।" data-en="Instant answers to your questions, anytime, on any topic. Simplify your life with AI-powered assistance.">আপনার প্রশ্নের তাৎক্ষণিক উত্তর, যেকোনো সময়, যেকোনো বিষয়ে। এআই-চালিত সহায়তার মাধ্যমে আপনার জীবনকে সহজ করুন।</p>
+            <a href="/chat" class="btn btn-light btn-lg" data-bn="এখনই চ্যাট করুন" data-en="Chat Now">এখনই চ্যাট করুন</a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <p data-bn="© ২০২৫ Teacher Bot — এআই দিয়ে সবার জন্য সহজ সমাধান" data-en="© 2025 Teacher Bot — Easy solutions for everyone through AI">© ২০২৫ Teacher Bot — এআই দিয়ে সবার জন্য সহজ সমাধান</p>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Settings Script -->
+    <script>
+        const langToggle = document.getElementById('lang-toggle');
+        const themeToggle = document.getElementById('theme-toggle');
+        const langElements = document.querySelectorAll('[data-bn], [data-en]');
+        let currentLang = localStorage.getItem('lang') || 'bn';
+        let currentTheme = localStorage.getItem('theme') || 'light';
+
+        function toggleLanguage() {
+            currentLang = currentLang === 'bn' ? 'en' : 'bn';
+            localStorage.setItem('lang', currentLang);
+            langToggle.textContent = currentLang === 'bn' ? 'English' : 'বাংলা';
+            langElements.forEach(el => {
+                const text = el.getAttribute(`data-${currentLang}`);
+                if (text) el.textContent = text;
+            });
+            document.documentElement.lang = currentLang;
+            document.title = document.querySelector('title').getAttribute(`data-${currentLang}`);
+            // Update theme toggle text
+            const themeText = themeToggle.querySelector('span');
+            themeText.textContent = themeText.getAttribute(`data-${currentLang}`);
+        }
+
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            currentTheme = document.body.classList.contains('dark-mode') ? 'dark' : 'light';
+            const themeIcon = themeToggle.querySelector('i');
+            themeIcon.className = `fas fa-${currentTheme === 'dark' ? 'sun' : 'moon'} settings-icon`;
+            themeToggle.querySelector('span').textContent = currentLang === 'bn' ?
+                (currentTheme === 'dark' ? 'লাইট মোড' : 'ডার্ক মোড') :
+                (currentTheme === 'dark' ? 'Light Mode' : 'Dark Mode');
+            localStorage.setItem('theme', currentTheme);
+        }
+
+        // Initial setup
+        if (currentLang === 'en') toggleLanguage();
+        if (currentTheme === 'dark') toggleTheme();
+        langToggle.addEventListener('click', toggleLanguage);
+        themeToggle.addEventListener('click', toggleTheme);
+    </script>
+</body>
+</html>
