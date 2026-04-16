@@ -1,8 +1,7 @@
 Flask
 gTTS
-google-genai
 python-dotenv
-googletrans
+googletrans==4.0.0rc1
 fuzzywuzzy
 python-Levenshtein
 Flask-Caching
@@ -10,3 +9,4 @@ Flask-Limiter
 Flask-Session
 bleach
 backoff
+requests

@@ -7,14 +7,14 @@ import uuid
 import time
 import glob
 import logging
+import requests
+import json
 from gtts import gTTS
-from google import genai  # Corrected import (assuming google-generativeai)
 from dotenv import load_dotenv
 from googletrans import Translator
 from flask_caching import Cache
-import threading
 import bleach
-import backoff  # Add this: pip install backoff
+import backoff
 
 load_dotenv()
 
@@ -24,8 +24,10 @@ app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Initialize Gemini AI client
-client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+# OpenRouter config
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "openai/gpt-oss-120b:free")
+OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 # Caching setup
 app.config['CACHE_TYPE'] = 'simple'
@@ -37,16 +39,16 @@ os.makedirs("static/audio", exist_ok=True)
 # Translator (using sync version)
 translator = Translator()
 
-# Predefined response translations (extended with soil moisture)
+# Predefined response translations
 RESPONSE_TRANSLATIONS = {
-    "লাইটটি চালু হয়েছে": "The light has been turned on",
-    "লাইটটি বন্ধ হয়েছে": "The light has been turned off",
-    "বীজ বপন ব্যবস্থা চালু হয়েছে": "The seed sowing system has been turned on",
-    "বীজ বপন ব্যবস্থা বন্ধ হয়েছে": "The seed sowing system has been turned off",
-    "কীটনাশক ব্যবস্থা চালু হয়েছে": "The fertilizer system has been turned on",
-    "কীটনাশক ব্যবস্থা বন্ধ হয়েছে": "The fertilizer system has been turned off",
-    "ওয়াটার পাম্প চালু হয়েছে": "The water pump has been turned on",
-    "ওয়াটার পাম্প বন্ধ হয়েছে": "The water pump has been turned off",
+    "লাইটটি চালু হয়েছে": "The light has been turned on",
+    "লাইটটি বন্ধ হয়েছে": "The light has been turned off",
+    "বীজ বপন ব্যবস্থা চালু হয়েছে": "The seed sowing system has been turned on",
+    "বীজ বপন ব্যবস্থা বন্ধ হয়েছে": "The seed sowing system has been turned off",
+    "কীটনাশক ব্যবস্থা চালু হয়েছে": "The fertilizer system has been turned on",
+    "কীটনাশক ব্যবস্থা বন্ধ হয়েছে": "The fertilizer system has been turned off",
+    "ওয়াটার পাম্প চালু হয়েছে": "The water pump has been turned on",
+    "ওয়াটার পাম্প বন্ধ হয়েছে": "The water pump has been turned off",
     "পরিমাপ করা হচ্ছে... LCD প্যানেল দেখুন": "Measuring... Look at the LCD panel",
     "বন্ধ করা হচ্ছে...":'Stopping....',
     "রোভার শুরু হচ্ছে।":"Starting rover.",
@@ -54,7 +56,6 @@ RESPONSE_TRANSLATIONS = {
 }
 
 SYSTEM_INSTRUCTION_BN = ""
-
 SYSTEM_INSTRUCTION_EN = ""
 
 with open("USER_INSTRUCTIONS_BN.txt","r") as file:
@@ -65,7 +66,7 @@ with open("USER_INSTRUCTIONS_EN.txt","r") as file:
 def get_system_instruction(lang):
     return SYSTEM_INSTRUCTION_BN if lang == 'bn' else SYSTEM_INSTRUCTION_EN
 
-def split_text(text, max_length=150):  # Reduced max_length to avoid rate limits
+def split_text(text, max_length=150):
     sentences = text.split('।' if '.' not in text else '.')
     chunks = []
     current_chunk = ""
@@ -83,12 +84,12 @@ def split_text(text, max_length=150):  # Reduced max_length to avoid rate limits
         chunks.append(current_chunk.strip())
     return chunks
 
-@backoff.on_exception(backoff.expo, Exception, max_tries=3)  # Retry with backoff on any exception
+@backoff.on_exception(backoff.expo, Exception, max_tries=3)
 def generate_tts_chunk(text, lang):
     tts = gTTS(text=text, lang=lang, slow=False)
     chunk_mp3 = os.path.join("static", "audio", f"{uuid.uuid4()}.mp3")
     tts.save(chunk_mp3)
-    time.sleep(1)  # Short delay between chunks to avoid hammering the API
+    time.sleep(1)
     base = request.host_url.rstrip('/')
     public_path = f"{base}/{chunk_mp3.replace(os.sep, '/')}"
     logger.info("TTS saved: %s -> %s", chunk_mp3, public_path)
@@ -102,28 +103,47 @@ def generate_audio_sync(text_chunks, lang):
             audio_urls.append(public_path)
         except Exception as e:
             logger.error("TTS error saving chunk after retries: %s", e, exc_info=True)
-            # Fallback: Skip or add a placeholder silent audio if needed
     return audio_urls
 
 def get_english_translation(bn_text):
     if bn_text in RESPONSE_TRANSLATIONS:
         return RESPONSE_TRANSLATIONS[bn_text]
     try:
-        return translator.translate(bn_text, src='bn', dest='en').text  # Now sync
+        return translator.translate(bn_text, src='bn', dest='en').text
     except Exception as e:
         logger.error(f"Translation error: {e}")
         return bn_text + " (Translation unavailable)"
 
 def get_bangla_translation(en_text):
-    # Reverse lookup for exact matches; otherwise translate
     for bn, en in RESPONSE_TRANSLATIONS.items():
         if en == en_text:
             return bn
     try:
-        return translator.translate(en_text, src='en', dest='bn').text  # Now sync
+        return translator.translate(en_text, src='en', dest='bn').text
     except Exception as e:
         logger.error(f"Translation error: {e}")
         return en_text + " (অনুবাদ অনুপলব্ধ)"
+
+def call_openrouter(system_instruction, user_message):
+    """Call OpenRouter API and return the response text."""
+    resp = requests.post(
+        url=OPENROUTER_URL,
+        headers={
+            "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+            "Content-Type": "application/json",
+        },
+        data=json.dumps({
+            "model": OPENROUTER_MODEL,
+            "messages": [
+                {"role": "system", "content": system_instruction},
+                {"role": "user", "content": user_message}
+            ]
+        }),
+        timeout=30
+    )
+    resp.raise_for_status()
+    data = resp.json()
+    return data["choices"][0]["message"]["content"].strip()
 
 @app.route('/')
 def serve_webpage():
@@ -153,18 +173,15 @@ def ask_bot():
         return jsonify({'error': 'Missing question'}), 400
 
     try:
-        full_prompt = f"{get_system_instruction(lang)}\n\nপ্রশ্ন: {question}\n\nউত্তর দিন:" if lang == 'bn' else f"{get_system_instruction(lang)}\n\nQuestion: {question}\n\nAnswer:"
+        system_instr = get_system_instruction(lang)
+        user_msg = f"প্রশ্ন: {question}\n\nউত্তর দিন:" if lang == 'bn' else f"Question: {question}\n\nAnswer:"
 
-        response = client.models.generate_content(
-            model="gemini-2.0-flash",
-            contents=full_prompt
-        )
-        primary_answer = response.text.strip()
+        primary_answer = call_openrouter(system_instr, user_msg)
 
         # Get secondary translation
         secondary_answer = get_english_translation(primary_answer) if lang == 'bn' else get_bangla_translation(primary_answer)
 
-        # Generate audio synchronously (reliable)
+        # Generate audio synchronously
         primary_chunks = split_text(primary_answer)
         secondary_chunks = split_text(secondary_answer)
 
@@ -205,35 +222,31 @@ def get_audio(filename):
 
 @app.route("/esp32-receive/", methods=["GET"])
 def esp32_receive():
-    # Define command triggers with all variants (Bangla + English, including old ones for safety)
-    # Key: command, Value: list of phrases (case-sensitive, but we'll lower() in checks)
     print(request.content_type)
     command_triggers = {
-        "light_on": ["লাইটটি চালু হয়েছে", "The light has been turned on", "Light has been turned ON"],
-        "light_off": ["লাইটটি বন্ধ হয়েছে", "The light has been turned off", "Light has been turned OFF"],
-        "seed_sow_on": ["বীজ বপন ব্যবস্থা চালু হয়েছে", "The seed sowing system has been turned on", "Seed sowing system has been turned ON"],
-        "seed_sow_off": ["বীজ বপন ব্যবস্থা বন্ধ হয়েছে", "The seed sowing system has been turned off", "Seed sowing system has been turned OFF"],
-        "fertilizer_on": ["কীটনাশক ব্যবস্থা চালু হয়েছে", "The fertilizer system has been turned on", "Fertilizer system has been turned ON"],
-        "fertilizer_off": ["কীটনাশক ব্যবস্থা বন্ধ হয়েছে", "The fertilizer system has been turned off", "Fertilizer system has been turned OFF"],
-        "water_pump_on": ["ওয়াটার পাম্প চালু হয়েছে", "The water pump has been turned on", "Water pump has been turned ON"],
-        "water_pump_off": ["ওয়াটার পাম্প বন্ধ হয়েছে", "The water pump has been turned off", "Water pump has been turned OFF"],
+        "light_on": ["লাইটটি চালু হয়েছে", "The light has been turned on", "Light has been turned ON"],
+        "light_off": ["লাইটটি বন্ধ হয়েছে", "The light has been turned off", "Light has been turned OFF"],
+        "seed_sow_on": ["বীজ বপন ব্যবস্থা চালু হয়েছে", "The seed sowing system has been turned on", "Seed sowing system has been turned ON"],
+        "seed_sow_off": ["বীজ বপন ব্যবস্থা বন্ধ হয়েছে", "The seed sowing system has been turned off", "Seed sowing system has been turned OFF"],
+        "fertilizer_on": ["কীটনাশক ব্যবস্থা চালু হয়েছে", "The fertilizer system has been turned on", "Fertilizer system has been turned ON"],
+        "fertilizer_off": ["কীটনাশক ব্যবস্থা বন্ধ হয়েছে", "The fertilizer system has been turned off", "Fertilizer system has been turned OFF"],
+        "water_pump_on": ["ওয়াটার পাম্প চালু হয়েছে", "The water pump has been turned on", "Water pump has been turned ON"],
+        "water_pump_off": ["ওয়াটার পাম্প বন্ধ হয়েছে", "The water pump has been turned off", "Water pump has been turned OFF"],
         "start_measuring_soil_moisture": ["পরিমাপ করা হচ্ছে... LCD প্যানেল দেখুন", "Measuring... Look at the LCD panel", "MEASURING.... LOOK AT THE LCD PANEL"],
         "stop_measuring_soil_moisture": ["বন্ধ করা হচ্ছে...","Stopping....","STOPPING...."],
         "start_rover": ["রোভার শুরু হচ্ছে।","Starting rover.","STARTING ROVER."],
         "stop_rover": ["রোভার বন্ধ হচ্ছে।","Stopping rover.","STOPPING ROVER."]
     }
 
-    # Check both primary and secondary answers for any matching phrase (case-insensitive)
     answers = [primary_answer.lower(), secondary_answer.lower()]
     for cmd, phrases in command_triggers.items():
         for phrase in [p.lower() for p in phrases]:
             for ans in answers:
                 if phrase in ans:
-                    # Optional: Add fuzzy check if you want more robustness (e.g., if AI paraphrases)
-                    # if fuzz.partial_ratio(phrase, ans) > 90:
                     return cmd
 
     return "none_for_now"
+
 @app.route("/esp32-receive-movement", methods=["POST"])
 def esp32_receive_movement():
     global clever_way
@@ -242,7 +255,7 @@ def esp32_receive_movement():
     content_type = request.content_type
     print(content_type)
     print(data)
-    
+
     height = data.get('height')
     width = data.get('width')
     num_rows = data.get('num_rows')
@@ -267,6 +280,7 @@ def esp32_receive_movement():
         "calculated_area": total_area,
         "movement_plan": movement_plan
     }), 200
+
 @app.route("/esp32-movement/", methods=["GET"])
 def esp32_movement():
     row = clever_way["num_rows"]
@@ -276,7 +290,7 @@ def esp32_movement():
     distance = clever_way["distance"]
     instruction_str = ""
     if orient == "vertical":
-        for i in range(1,row):
+        for i in range(1, row):
             if i % 2 == 0:
                 instruction_str += "FLfL"
             else:
@@ -285,7 +299,7 @@ def esp32_movement():
         final_str = str(height)+"-"+str(distance)+"_"+instruction_str
         return final_str
     else:
-        for i in range(1,row):
+        for i in range(1, row):
             if i % 2 == 0:
                 instruction_str += "FRfR"
             else:
@@ -295,6 +309,5 @@ def esp32_movement():
         return final_str
 
 
-    
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
