@@ -1,7 +1,7 @@
 Flask
 gTTS
 python-dotenv
-googletrans==4.0.0rc1
+deep-translator
 fuzzywuzzy
 python-Levenshtein
 Flask-Caching

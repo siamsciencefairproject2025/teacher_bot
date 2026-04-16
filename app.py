@@ -11,7 +11,7 @@ import requests
 import json
 from gtts import gTTS
 from dotenv import load_dotenv
-from googletrans import Translator
+from deep_translator import GoogleTranslator
 from flask_caching import Cache
 import bleach
 import backoff
@@ -37,7 +37,7 @@ cache = Cache(app)
 os.makedirs("static/audio", exist_ok=True)
 
 # Translator (using sync version)
-translator = Translator()
+# deep_translator is used per-call, no global init needed
 
 # Predefined response translations
 RESPONSE_TRANSLATIONS = {
@@ -109,7 +109,7 @@ def get_english_translation(bn_text):
     if bn_text in RESPONSE_TRANSLATIONS:
         return RESPONSE_TRANSLATIONS[bn_text]
     try:
-        return translator.translate(bn_text, src='bn', dest='en').text
+        return GoogleTranslator(source='bn', target='en').translate(bn_text)
     except Exception as e:
         logger.error(f"Translation error: {e}")
         return bn_text + " (Translation unavailable)"
@@ -119,7 +119,7 @@ def get_bangla_translation(en_text):
         if en == en_text:
             return bn
     try:
-        return translator.translate(en_text, src='en', dest='bn').text
+        return GoogleTranslator(source='en', target='bn').translate(en_text)
     except Exception as e:
         logger.error(f"Translation error: {e}")
         return en_text + " (অনুবাদ অনুপলব্ধ)"
